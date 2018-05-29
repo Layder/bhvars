@@ -61,7 +61,7 @@ class BHDB:
 				sys.exit(-1)
 		else:
 			# path exists, can just update var instead of creating it
-			self.cur.execute('UPDATE simple_storage SET var_type = %s, value = %s WHERE var_id = %s',
+			self.cur.execute('UPDATE simple_storage SET modified_at = NOW(), var_type = %s, value = %s WHERE var_id = %s',
 				(var_type, value, var_id,))
 		self.conn.commit()
 		return(var_id)
