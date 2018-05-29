@@ -2,6 +2,11 @@
 
 import psycopg2
 
+# var types
+# 0 - str
+# 1 - int
+# 2 - bool
+
 class BHDB:
 	def __init__(self, host, login, passwd):
 		self.login = login
@@ -15,110 +20,67 @@ class BHDB:
 		except:
 			return None
 
-	def set_s(self, path, val):
-		path_id = self.get_path_id(path)
-		if path_id is not None:
-			self.set_by_id(path_id, val)
-			return(path_id)
-
-		path_uuid = self.get_path_uuid(path)
-		var_name = self.get_var_name(path)
-
-		if path_uuid is None:
-			self.set_path_uuid(path)
-		self.cur.execute("INSERT INTO storage (ptr_id, var_type, var_name, val_str) VALUES (%s, 0, %s, %s) RETURNING var_id",
-			(path_uuid, var_name, val,))
+	def get_id(self, path):
+		self.cur.execute('SELECT var_id FROM simple_storage WHERE lower(path) = %s',
+			(path.lower(),))
 		rows = self.cur.fetchall()
-		self.conn.commit()
 		if len(rows) != 0 and len(rows[0]) > 0:
-			ptr_id = rows[0]
-			self.cur.execute("INSERT INTO ptrs (ptr_id, path) VALUES (%s, %s)", (ptr_id, path,))
-			self.conn.commit()
-
-	def get_s(self, path):
-		path_id = self.get_path_id(path)
-		if path_id is not None:
-			val = self.get_by_id(path_id)
-			return(val)
-
-	def set_by_id(self, path_id, val):
-		self.cur.execute("UPDATE storage SET val_str = %s WHERE var_id = %s", (val, path_id,))
-		self.conn.commit()
-		return None
-
-	def get_by_id(self, path_id):
-		self.cur.execute("SELECT val_str FROM storage WHERE var_id = %s", (path_id,))
-		rows = self.cur.fetchall()
-		return(rows[0][0])
-
-	def get_path_id(self, path):
-		self.cur.execute("SELECT ptr_id FROM ptrs WHERE lower(path) = %s", (path,))
-		rows = self.cur.fetchall()
-		if len(rows) == 0 or len(rows[0]) == 0:
-			return None
+			return(rows[0][0]) # rows[0] == var_id
 		else:
-			return rows[0][0]
+			return None
 
-		path_uuid = self.get_path_uuid(path)
-		var_name = self.get_var_name(path)
+	def setv(self, path, value):
+		# bool = 0
+		# int = 1
+		# str = 2
+		if type(value) is bool:
+			var_type = 0
+		elif type(value) is int:
+			var_type = 1
+		elif type(value) is str:
+			var_type = 2
+		else:
+			print('Unknown type')
+		# value has always to be string for db
+		value = str(value)
 
-		print('path uuid = %s' % path_uuid)
-		print('var name = %s' % var_name)
-		self.cur.execute("SELECT var_id FROM storage WHERE ptr_id = %s AND lower(var_name) = %s", (path_uuid, var_name,))
+		# check if path already exists
+		var_id = self.get_id(path)
+		if var_id is None:
+			# no path yet
+			self.cur.execute('INSERT INTO simple_storage (path, var_type, value) VALUES (%s, %s, %s) RETURNING var_id',
+				(path, var_type, value,))
+			# get var id (uuid)
+			rows = self.cur.fetchall()
+			if len(rows) != 0 and len(rows[0]) > 0:
+				self.conn.commit()
+				return(rows[0][0]) # rows[0] == var_id
+			else:
+				# must not be here though
+				print('error in query, setv()')
+				sys.exit(-1)
+		else:
+			# path exists, can just update var instead of creating it
+			self.cur.execute('UPDATE simple_storage SET var_type = %s, value = %s WHERE var_id = %s',
+				(var_type, value, var_id,))
+		self.conn.commit()
+		return(var_id)
+
+
+	def getv_by_id(self, var_id):
+		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE var_id = %s',
+			(var_id,))
 		rows = self.cur.fetchall()
-		if len(rows[0] > 0):
-			return True
-		return False
-
-	def get_var_name(self, path):
-		itms = [x.strip() for x in path.split('/')]
-		l = len(itms)
-		if l < 1:
-			# invalid path
-			return(None)
-
-		return(itms[l-1])
-
-	def get_path_uuid(self, path):
-		itms = [x.strip() for x in path.split('/')]
-		l = len(itms)
-		if l < 1:
-			# invalid path
-			return(None)
-
-		# now get prepath
-		if l > 1:
-			itms = itms[:-1]
-			prepath = str.join('/', itms)
-			try:
-				self.cur.execute("SELECT ptr_id FROM ptrs WHERE path = %s", (prepath,))
-				rows = self.cur.fetchall()
-				if len(rows) == 1:
-					return(rows[0])
-			except:
-				print('Error fetching ptr_id from "ptrs" table')
-				return None
-		return(None)
-
-	def set_path_uuid(self, path):
-		itms = [x.strip() for x in path.split('/')]
-		l = len(itms)
-		if l < 1:
-			# invalid path
-			return(None)
-
-		# now get prepath
-		if l > 1:
-			itms = itms[:-1]
-			prepath = str.join('/', itms)
-			try:
-				path_id = self.get_path_uuid(prepath)
-				if path_id is None:
-					self.cur.execute("INSERT INTO ptrs (path) VALUES (%s)", (prepath,))
-					self.conn.commit()
-					path_id = self.get_path_uuid(prepath)
-					return(path_id)
-			except:
-				print('Error fetching ptr_id from "ptrs" table')
-				return None
-		return(None)
+		if len(rows) != 0 and len(rows[0]) > 0:
+			var_type = rows[0][0]
+			value = rows[0][1]
+			if var_type == 0:
+				value = bool(value)
+			elif var_type == 1:
+				value = int(value)
+			elif var_type == 2:
+				value = str(value)
+			return(value)
+		else:
+			print('no var by this id: %s' % var_id)
+			return None
