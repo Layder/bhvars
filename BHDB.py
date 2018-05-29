@@ -67,7 +67,7 @@ class BHDB:
 		return(var_id)
 
 
-	def getv(self, path):
+	def getv(self, path, def_value = None):
 		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE lower(path) = %s',
 			(path.lower(),))
 		rows = self.cur.fetchall()
@@ -82,7 +82,9 @@ class BHDB:
 				value = str(value)
 			return(value)
 		else:
-			print('no var by this path: %s' % path)
+			if def_value is not None:
+				self.setv(path, def_value)
+				return(def_value)
 			return None
 
 	def getv_by_id(self, var_id):
