@@ -2,11 +2,6 @@
 
 import psycopg2
 
-# var types
-# 0 - str
-# 1 - int
-# 2 - bool
-
 class BHDB:
 	def __init__(self, host, login, passwd):
 		self.login = login
