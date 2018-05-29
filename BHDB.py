@@ -35,7 +35,7 @@ class BHDB:
 
 	def setv(self, path, value):
 		if self.cwd is not None:
-			path = cmd + path
+			path = self.cwd + path
 
 		# bool = 0
 		# int = 1
