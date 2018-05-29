@@ -22,6 +22,9 @@ class BHDB:
 			return None
 
 	def get_id(self, path):
+		if self.cwd is not None:
+			path = self.cwd + path
+
 		self.cur.execute('SELECT var_id FROM simple_storage WHERE lower(path) = %s',
 			(path.lower(),))
 		rows = self.cur.fetchall()
@@ -33,7 +36,7 @@ class BHDB:
 	def setv(self, path, value):
 		if self.cwd is not None:
 			path = cmd + path
-			print(path)
+
 		# bool = 0
 		# int = 1
 		# str = 2
@@ -74,6 +77,7 @@ class BHDB:
 	def getv(self, path, def_value = None):
 		if self.cwd is not None:
 			path = self.cwd + path
+
 		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE lower(path) = %s',
 			(path.lower(),))
 		rows = self.cur.fetchall()
