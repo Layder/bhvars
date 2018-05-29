@@ -12,6 +12,7 @@ class BHDB:
 		self.login = login
 		self.passwd = passwd
 		self.conn = None
+		self.cwd = None
 
 		try:
 			self.conn = psycopg2.connect("dbname='bh' host='%s' user='%s' password='%s'" % (host, login, passwd))
@@ -30,6 +31,9 @@ class BHDB:
 			return None
 
 	def setv(self, path, value):
+		if self.cwd is not None:
+			path = cmd + path
+			print(path)
 		# bool = 0
 		# int = 1
 		# str = 2
@@ -68,6 +72,8 @@ class BHDB:
 
 
 	def getv(self, path, def_value = None):
+		if self.cwd is not None:
+			path = self.cwd + path
 		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE lower(path) = %s',
 			(path.lower(),))
 		rows = self.cur.fetchall()
@@ -104,3 +110,11 @@ class BHDB:
 		else:
 			print('no var by this id: %s' % var_id)
 			return None
+
+	def cd(self, path):
+		# change directory analog
+		if path == '/':
+			self.cwd = None
+		self.cwd = path
+		return
+
