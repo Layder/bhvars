@@ -67,6 +67,24 @@ class BHDB:
 		return(var_id)
 
 
+	def getv(self, path):
+		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE lower(path) = %s',
+			(path.lower(),))
+		rows = self.cur.fetchall()
+		if len(rows) != 0 and len(rows[0]) > 0:
+			var_type = rows[0][0]
+			value = rows[0][1]
+			if var_type == 0:
+				value = bool(value)
+			elif var_type == 1:
+				value = int(value)
+			elif var_type == 2:
+				value = str(value)
+			return(value)
+		else:
+			print('no var by this path: %s' % path)
+			return None
+
 	def getv_by_id(self, var_id):
 		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE var_id = %s',
 			(var_id,))
