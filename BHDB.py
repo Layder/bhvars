@@ -80,7 +80,6 @@ class BHDB:
 		orig_path = path
 		if self.cwd is not None:
 			path = self.cwd + path
-		print(path)
 
 		self.cur.execute('SELECT var_type, value FROM simple_storage WHERE lower(path) = %s',
 			(path.lower(),))
