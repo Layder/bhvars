@@ -3,7 +3,7 @@
 import psycopg2
 
 class BHDB:
-	def __init__(self, login, passwd):
+	def __init__(self, host, login, passwd):
 		self.login = login
 		self.passwd = passwd
 		self.conn = None
