@@ -54,7 +54,7 @@ class BHDB:
 		value = str(value)
 
 		# check if path already exists
-		var_id = self.get_id(path)
+		var_id = self.get_id(orig_path)
 		if var_id is None:
 			# no path yet
 			self.cur.execute('INSERT INTO simple_storage (path, var_type, value) VALUES (%s, %s, %s) RETURNING var_id',
